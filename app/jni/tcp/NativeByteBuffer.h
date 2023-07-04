@@ -42,11 +42,11 @@ private:
     bool calculateSizeOnly = false;
     bool bufferOwner = true;
 
-#ifdef ANDROID
-    // java层的ByteBuffer
-    // todo
-    jobject javaByteBuffer = nullptr;
-#endif
+//#ifdef ANDROID
+//    // java层的ByteBuffer
+//    // todo
+//    jobject javaByteBuffer = nullptr;
+//#endif
 
 public:
     // buffer大小
@@ -54,6 +54,12 @@ public:
     // 不存储数据，仅用来计算大小：1字节数据(8位)对应1长度
     NativeByteBuffer(bool calculateSizeOnly);
     ~NativeByteBuffer();
+
+    // 获取缓冲区
+    uint8_t *bytes();
+
+    // 容量
+    uint32_t capacity();
 
     // 当前指针位置
     uint32_t position();
@@ -77,6 +83,7 @@ public:
     void flip();
     /**
      * 转换为写入模式
+     * ******p---l****c   to  ---p**********l(c)
      * 1. 将 position 到 limit 之间还未读取的数据拷贝到 ByteBuffer 中数组的最前面，
      * 2. 然后再将 position 移动至这些数据之后的一位，将 limit 移动至 capacity
      */
@@ -84,12 +91,10 @@ public:
     // 跳过xx字节
     void skip(uint32_t length);
 
-    uint8_t *bytes();
-
-    uint32_t capacity();
-    void clearCapacity();
+    // 重置
     void clear();
 
+    // todo
     void reuse();
 
     // ****************** 写数据 **********************
@@ -110,13 +115,14 @@ public:
 
     // ******** 写一组数据
     void writeBytes(NativeByteBuffer *buffer);
-    void writeBytes(uint8_t *buffer, uint32_t length);
+    void writeBytes(uint8_t *bytes, uint32_t length);
     // offset: 偏移位置， length：长度
-    void writeBytes(uint8_t *buffer, uint32_t offset, uint32_t length);
+    void writeBytes(uint8_t *bytes, uint32_t offset, uint32_t length);
 
+    // 注意buffer必须是读取状态
     void writeBytes(NativeByteBuffer *buffer, bool *error);
-    void writeBytes(uint8_t *buffer, uint32_t length, bool *error);
-    void writeBytes(uint8_t *buffer, uint32_t offset, uint32_t length, bool *error);
+    void writeBytes(uint8_t *bytes, uint32_t length, bool *error);
+    void writeBytes(uint8_t *bytes, uint32_t offset, uint32_t length, bool *error);
 
 
     // ****************** 读数据 **********************
@@ -124,18 +130,15 @@ public:
     int16_t  readInt16(bool *error);
     int32_t  readInt32(bool *error);
     int64_t  readInt64(bool *error);
-    uint16_t readUint16(bool *error);
-    uint32_t readUint32(bool *error);
-    uint64_t readUint64(bool *error);
     bool readBool(bool *error);
     double readDouble(bool *error);
 
 
-#ifdef ANDROID
-    // 获得java层的ByteBuffer
-    // todo
-    jobject getJavaByteBuffer();
-#endif
+//#ifdef ANDROID
+//    // 获得java层的ByteBuffer
+//    // todo
+//    jobject getJavaByteBuffer();
+//#endif
 };
 
 #endif //BEGGARSOCKETS_NATIVEBYTEBUFFER_H
