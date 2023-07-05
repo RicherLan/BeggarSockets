@@ -13,7 +13,7 @@ class NativeByteBuffer;
 
 class Request {
 public:
-    Request(NativeByteBuffer *buffer, int32_t cmdId, uint32_t flags, uint64_t timeout, onSendCompleteFunc sendCompleteFunc);
+    Request(NativeByteBuffer *buffer, int32_t cmdId, uint32_t flags, uint64_t timeoutMs, onSendCompleteFunc sendCompleteFunc);
     ~Request();
 
     // ***************** 必要的参数

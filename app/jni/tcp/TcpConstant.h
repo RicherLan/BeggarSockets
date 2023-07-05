@@ -11,6 +11,11 @@
 #include <string.h>
 #include <functional>
 
+// 默认的包超时时间
+#define DEFAULT_PACK_TIMEOUT 30 * 1000
+// 默认的重试次数
+#define DEFAULT_RETRY_COUNT 3
+
 class NativeByteBuffer
 
 /**
