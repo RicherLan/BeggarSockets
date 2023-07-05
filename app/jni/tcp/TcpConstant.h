@@ -13,10 +13,10 @@
  * 所有的event
  */
 enum EventType {
-    Connection, // 链接
-    Pip,        // pipe
-    Fd,         // eventFd
-    Timer,      // 计时器
+    Connection, // 连接
+    Pipe,        // 管道
+    Fd,         // EventFd
+    Timer,      // 定时器
 };
 
 #endif //BEGGARSOCKETS_TCPCONSTANT_H

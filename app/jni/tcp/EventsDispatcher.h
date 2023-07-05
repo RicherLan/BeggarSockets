@@ -21,7 +21,13 @@ public:
     int64_t time;
 
     // 关联【接收事件的对象】 和 【该对象关心的事件类型】
-    EventsDispatcher(void *object, EventType type)
+    EventsDispatcher(void *object, EventType type);
+
+    /**
+     * 收到事件了
+     * @param events 所有的事件
+     */
+    void onEvent(uint32_t events);
 };
 
 #endif //BEGGARSOCKETS_EVENTSDISPATCHER_H
