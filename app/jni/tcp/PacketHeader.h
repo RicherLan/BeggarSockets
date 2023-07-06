@@ -2,6 +2,7 @@
  * author: BeggarLan
  * created on: 2023/7/6 16:12 
  * description: 包头定义
+ * todo 提供定制包结构的能力
  */
 
 #ifndef BEGGARSOCKETS_PACKETHEADER_H
