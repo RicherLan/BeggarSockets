@@ -9,6 +9,7 @@
 
 #include "stdint.h"
 #include "string"
+#include <sys/epoll.h>
 
 class EventsDispatcher;
 class TcpSocket;
@@ -34,10 +35,14 @@ public:
     // 清理
     void clear();
 
+
+
 private:
+    // single instance
     ConnectionManager();
     // 调度一个task
     void scheduleTask(std::function<void()> task);
+
 };
 
 #endif //BEGGARSOCKETS_CONNECTITONMANAGER_H
