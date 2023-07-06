@@ -12,9 +12,7 @@
 #include <netinet/in.h>
 
 class ByteStream;
-
 class NativeByteBuffer;
-
 class EventsDispatcher;
 
 class TcpSocket {
@@ -43,10 +41,8 @@ public:
     void openConnection(std::string address, uint16_t port);
     void dropConnection();
     bool isConnected();
-
     // 写数据
     void writeBuffer();
-
     // 设置超时时间
     void setTimeout(time_t timeMs)
 
