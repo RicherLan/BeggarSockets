@@ -29,7 +29,13 @@ void ByteStream::get(NativeByteBuffer *dst) {
     for (auto buffer: *bufferQueue) {
         // dst空间不够了
         if (buffer->remaining() > dst->remaining()) {
-            dst->writeBytes(buffer, dst->remaining())
+            dst->writeBytes(buffer, dst->remaining());
+            break;
+        }
+        dst->writeBytes(buffer, buffer->position(), buffer->remaining());
+        // 写满了
+        if (!dst->hasRemaining()) {
+            break;
         }
     }
 }
@@ -53,9 +59,28 @@ bool ByteStream::hasData() {
     return false;
 }
 
-//
-void ByteStream::discard(uint32_t count) {
+// 丢弃数据
+void ByteStream::discard(uint32_t length) {
+    NativeByteBuffer *buffer;
+    while (length > 0) {
+        if (bufferQueue->empty()) {
+            break;
+        }
+        buffer = bufferQueue->at(0);
+        // 还有多少数据
+        uint32_t remaining = buffer->remaining();
+        // 干不掉这个buffer
+        if (length < remaining) {
+            buffer->position(buffer->position() + length);
+            break;
+        }
 
+        // 干掉这个buffer
+        // todo
+//        buffer->reuse();
+        bufferQueue->erase(bufferQueue->begin());
+        length -= remaining;
+    }
 }
 
 void ByteStream::clear() {

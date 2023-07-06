@@ -25,8 +25,8 @@ public:
     void append(NativeByteBuffer *buffer);
     // buffer中是否有数据
     bool hasData();
-    //
-    void discard(uint32_t count);
+    // 丢弃length字节的数据
+    void discard(uint32_t length);
     void clear();
 };
 
