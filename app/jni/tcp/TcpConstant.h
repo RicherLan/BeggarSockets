@@ -22,10 +22,10 @@ class NativeByteBuffer
  * 所有的event
  */
 enum EventType {
-    Connection, // 连接
-    Pipe,        // 管道
-    Fd,         // EventFd
-    Timer,      // 定时器
+    EventConnection, // 连接
+    EventPipe,        // 管道
+    EventFd,         // EventFd
+    EventTimer,      // 定时器
 };
 
 /**

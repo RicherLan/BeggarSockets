@@ -7,6 +7,7 @@
 #include "stdint.h"
 #include <sys/eventfd.h>
 #include "EventsDispatcher.h"
+#include "Timer.h"
 
 EventsDispatcher::EventsDispatcher(void *object, EventType type) {
     eventObject = object;
@@ -16,24 +17,25 @@ EventsDispatcher::EventsDispatcher(void *object, EventType type) {
 // todo 耦合了使用方，一个回调就能解决的问题
 void EventsDispatcher::onEvent(uint32_t events) {
     switch (eventType) {
-        // 连接
-        case EventType::Connection: {
+        case EventType::EventConnection: {
+            // 连接
 
             break;
         }
-        // 管道
-        case EventType::Pipe: {
+        case EventType::EventPipe: {
+            // 管道
 
             break;
         }
-        // EventFd
-        case EventType::Fd: {
+        case EventType::EventFd: {
+            // EventFd
 
             break;
         }
-        // 定时器
-        case EventType::Timer: {
-
+        case EventType::EventTimer: {
+            // 定时器
+            Timer *timer = (Timer *) eventObject;
+            timer->onEvent();
             break;
         }
         default: {
