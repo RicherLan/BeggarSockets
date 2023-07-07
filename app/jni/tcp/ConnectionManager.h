@@ -52,6 +52,9 @@ private:
     // 负责整个tcp的epoll
     int epollFd;
 
+    // 读写数据时的buffer
+    NativeByteBuffer *networkBuffer;
+
 
     // todo 依赖关系反了
     friend class TcpSocket;

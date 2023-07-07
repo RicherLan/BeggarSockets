@@ -11,3 +11,7 @@ ConnectionManager &ConnectionManager::getInstance() {
     ConnectionManager instance()
     return instance;
 }
+
+ConnectionManager::ConnectionManager() {
+    networkBuffer = new NativeByteBuffer(1024 * 128);
+}

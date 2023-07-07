@@ -90,7 +90,7 @@ void TcpSocket::openConnectionIpv4(std::string address, uint16_t port) {
     } else {
         ConnectionManager::getInstance().attachConnection(this);
         /**
-         * EPOLLRDHUP：
+         * EPOLLRDHUP：读关闭
          * 对端正常断开连接（调用close())，在服务器端会触发一个epoll事件。在低于2.6.17版本的内核中，这个epoll事件一般是EPOLLIN，即0x1表示连接可读。
          * 连接池检测到某个连接发生EPOLLIN事件且没有错误后，会认为有请求到来，将连接交给上层进行处理。这样以来，上层尝试在对端已经close()的连接上读取请求，只能读到EOF，会认为发生异常，报告一个错误。
          * 连接池检测到某个连接发生EPOLLIN事件且没有错误后，会认为有请求到来，将连接交给上层进行处理。这样以来，上层尝试在对端已经close()的连接上读取请求，只能读到EOF，会认为发生异常，报告一个错误。
@@ -114,7 +114,7 @@ void TcpSocket::openConnectionIpv4(std::string address, uint16_t port) {
          *     LT：如果不调用epoll_ctl将EPOLLOUT修改为EPOLLIN，则epoll_wait会持续返回EPOLLOUT(前提条件是写缓冲区未满)
          *     ET：epoll_wait只会返回一次EPOLLOUT
          */
-         // 监听可写、可读、对端断开、error、ET
+        // 监听可写、可读、对端断开、error、ET
         socketEvent.events = EPOLLOUT | EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
         // todo 这里应该传自定义callback，而不是让EventsDispatcher集中处理
         socketEvent.data.ptr = eventsDispatcher;
@@ -162,7 +162,7 @@ void TcpSocket::openConnectionIpv6(std::string address, uint16_t port) {
 }
 
 void TcpSocket::dropConnection() {
-
+    closeSocket(SocketCloseReason::MANUAL)
 }
 
 bool TcpSocket::isConnected() {
@@ -180,7 +180,61 @@ void TcpSocket::setTimeout(time_t timeMs) {
 }
 
 void TcpSocket::onEvent(uint32_t events) {
+    // 对端关闭时，自己会收到EPOLLRDHUP 和 EPOLLIN(有读事件)，因此要先处理
+    if ((events & EPOLLRDHUP) || (events & EPOLLHUP)) {
+        closeSocket(SocketCloseReason::COMMON);
+        return;
+    }
+    if (events & EPOLLERR) {
+        // todo
+        return;
+    }
 
+    // 可读事件
+    if (events & EPOLLIN) {
+        // 检查错误，比如断网时会收到可读事件
+        if (checkSocketError()) {
+            closeSocket(SocketCloseReason::COMMON);
+            return;
+        } else {
+            // todo
+            NativeByteBuffer *receiveBuffer = ConnectionManager::getInstance().networkBuffer;
+            size_t readCount = 0;
+            // 循环读
+            while (true) {
+                readCount = recv(sockedFd, receiveBuffer->bytes(), receiveBuffer->capacity(), 0);
+                if (readCount < 0) {
+                    closeSocket(SocketCloseReason::MANUAL);
+                    return;
+                }
+                // 读到数据
+                if (readCount > 0) {
+                    receiveBuffer->rewind();
+                    receiveBuffer->limit(readCount);
+                    onReceiveData(receiveBuffer);
+                }
+                // 读完了
+                if (readCount != receiveBuffer->capacity()) {
+                    break;
+                }
+            }
+        }
+    }
+
+    // 可写事件
+    if (events & EPOLLOUT) {
+        // 检查错误
+        if (checkSocketError()) {
+            closeSocket(SocketCloseReason::COMMON);
+            return;
+        } else {
+            // tcp一连接上就会产生EPOLLOUT事件, 这里第一次收到可写时作为onConnected()
+            if (!connected) {
+                connected = true;
+                onConnected();
+            }
+        }
+    }
 }
 
 bool TcpSocket::checkTimeout(int64_t currentTimeMs) {
@@ -196,11 +250,37 @@ int64_t TcpSocket::getLastEventTimeMs() {
 }
 
 void TcpSocket::closeSocket(SocketCloseReason reason) {
+    ConnectionManager::getInstance().detachConnection(this);
 
+    int epollFd = ConnectionManager::getInstance().epollFd;
+    if (sockedFd >= 0) {
+        // 从epoll中移除
+        epoll_ctl(epollFd, EPOLL_CTL_DEL, socketFd, NULL);
+        if (close(sockedFd) != 0) {
+            // can't close socket
+        }
+        sockedFd = -1;
+    }
+
+    // 更新连接状态
+    connected = false;
+
+    // 清除buffer
+    if (byteStream != nullptr) {
+        byteStream->clear();
+    }
+
+    // 回调连接断开
+    onDisconnected(reason);
 }
 
 bool TcpSocket::checkSocketError() {
-
+    if (sockedFd < 0) {
+        return true;
+    }
+    int code;
+    int opt = getsockopt(sockedFd, SOL_SOCKET, SO_ERROR, code, sizeof(int));
+    return code != 0 || opt != 0;
 }
 
 // bufferStream有改变时调用

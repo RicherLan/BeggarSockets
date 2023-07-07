@@ -35,6 +35,9 @@ private:
     // 上次事件的时间
     int64_t  lastEventTimeMs;
 
+    // 连接是否已经建立：注意tcp一连接上就会产生EPOLLOUT事件
+    bool connected = false;
+
 public:
     TcpSocket();
     ~TcpSocket();
