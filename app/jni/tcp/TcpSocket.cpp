@@ -6,6 +6,9 @@
 
 #include "sys/socket.h"
 #include "arpa/inet.h"
+#include <errno.h>
+#include <netinet/tcp.h>
+#include <fcntl.h>
 #include "string"
 #include "TcpSocket.h"
 #include "NativeByteBuffer.h"
@@ -56,16 +59,106 @@ void TcpSocket::openConnection(std::string address, uint16_t port) {
 // 连接ipv4
 void TcpSocket::openConnectionIpv4(std::string address, uint16_t port) {
     int epollFd = ConnectionManager::getInstance().epollFd;
+    // 创建socket
     sockedFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockedFd < 0) {
+        closeSocket(SocketCloseReason::COMMON)
+        return;
+    }
+    socketAddress.sin_port = htons(port);
+    socketAddress.sin_family = AF_INET;
 
+    // 设置tcp noDelay
+    int ok;
+    setsockopt(sockedFd, IPPROTO_TCP, TCP_NODELAY, &ok, sizeof(int))
+
+    // 设置socket为非堵塞
+    if (fcntl(sockedFd, F_SETFL, O_NONBLOCK) == -1) {
+        closeSocket(SocketCloseReason::COMMON);
+        return;
     }
 
+    /**
+     * 非阻塞connect返回的错误是有讲究的
+     * 1. 如果非阻塞connect返回的错误是EINPROGRESS，代表不是connect系统调用出错了，而是connect可能会在后面才会建立完整地连接(只是当前连接还没有建立完整)，所以我们可以在通过给select、pol或epoll设置等待时间，来等待这个connect的连接成功，从而进一步处理
+     * 2. 如果非阻塞connect返回的错误不是EINPROGRESS，代表就是connect系统调用本身出错了，那么就可以做一些相应的错误处理了
+     */
+    int result = connect(sockedFd, (sockaddr * ) & socketAddress, (socklen_t)
+    sizeof(sockaddr_in));
+    if (result == -1 && errno != EINPROGRESS) {
+        closeSocket(SocketCloseReason::COMMON)
+    } else {
+        ConnectionManager::getInstance().attachConnection(this);
+        /**
+         * EPOLLRDHUP：
+         * 对端正常断开连接（调用close())，在服务器端会触发一个epoll事件。在低于2.6.17版本的内核中，这个epoll事件一般是EPOLLIN，即0x1表示连接可读。
+         * 连接池检测到某个连接发生EPOLLIN事件且没有错误后，会认为有请求到来，将连接交给上层进行处理。这样以来，上层尝试在对端已经close()的连接上读取请求，只能读到EOF，会认为发生异常，报告一个错误。
+         * 连接池检测到某个连接发生EPOLLIN事件且没有错误后，会认为有请求到来，将连接交给上层进行处理。这样以来，上层尝试在对端已经close()的连接上读取请求，只能读到EOF，会认为发生异常，报告一个错误。
+         * 因此在使用2.6.17之前版本内核的系统中，我们无法依赖封装epoll的底层连接库来实现对对端关闭连接事件的检测，只能通过上层读取数据进行区分处理。
+         * 因此在使用2.6.7版本内核中增加EPOLLRDHUP事件，表示对端断开连接，关于添加这个事件的理由可以参见 http://lkml.org/lkml/2003/7/12/116。
+         */
+        /**
+         * Level-triggered ：水平触发，缺省模式
+         * edge-triggered ：边缘触发
+         * 比如redis用LT模式，nginx用ET模式
+         *
+         * 通知模式：
+         * LT模式时，事件就绪时，假设对事件没做处理，内核会反复通知事件就绪
+         * ET模式时，事件就绪时，假设对事件没做处理，内核不会反复通知事件就绪
+         *
+         * 事件通知的细节：
+         * 1.调用epoll_ctl，ADD或者MOD事件EPOLLIN
+         *     LT：如果此时缓存区没有可读数据，则epoll_wait不会返回EPOLLIN，如果此时缓冲区有可读数据，则epoll_wait会持续返回EPOLLIN
+         *     ET：如果此时缓存区没有可读数据，则epoll_wait不会返回EPOLLIN，如果此时缓冲区有可读数据，则epoll_wait会返回一次EPOLLIN
+         * 2.调用epoll_ctl，ADD或者MOD事件EPOLLOUT
+         *     LT：如果不调用epoll_ctl将EPOLLOUT修改为EPOLLIN，则epoll_wait会持续返回EPOLLOUT(前提条件是写缓冲区未满)
+         *     ET：epoll_wait只会返回一次EPOLLOUT
+         */
+         // 监听可写、可读、对端断开、error、ET
+        socketEvent.events = EPOLLOUT | EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
+        // todo 这里应该传自定义callback，而不是让EventsDispatcher集中处理
+        socketEvent.data.ptr = eventsDispatcher;
+        // 添加到epoll中
+        int code = epoll_ctl(epollFd, EPOLL_CTL_ADD, socketFd, &socketEvent);
+        if (code != 0) {
+            closeSocket(SocketCloseReason::COMMON)
+        }
+    }
 }
 
 // 连接ipv6
+// todo copy自openConnectionIpv4
 void TcpSocket::openConnectionIpv6(std::string address, uint16_t port) {
+    int epollFd = ConnectionManager::getInstance().epollFd;
+    sockedFd = socket(AF_INET6, SOCK_STREAM, 0);
+    if (sockedFd < 0) {
+        closeSocket(SocketCloseReason::COMMON)
+        return;
+    }
+    socketAddress6.sin6_port = htons(port);
+    socketAddress6.sin6_family = AF_INET6;
 
+    int ok;
+    setsockopt(sockedFd, IPPROTO_TCP, TCP_NODELAY, &ok, sizeof(int))
+
+    if (fcntl(sockedFd, F_SETFL, O_NONBLOCK) == -1) {
+        closeSocket(SocketCloseReason::COMMON);
+        return;
+    }
+
+    int result = connect(sockedFd, (sockaddr * ) & socketAddress6, (socklen_t)
+    sizeof(socketAddress6));
+    if (result == -1 && errno != EINPROGRESS) {
+        closeSocket(SocketCloseReason::COMMON)
+    } else {
+        ConnectionManager::getInstance().attachConnection(this);
+        socketEvent.events = EPOLLOUT | EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLET;
+        socketEvent.data.ptr = eventsDispatcher;
+        int code = epoll_ctl(epollFd, EPOLL_CTL_ADD, socketFd, &socketEvent);
+        if (code != 0) {
+            closeSocket(SocketCloseReason::COMMON)
+        }
+    }
 }
 
 void TcpSocket::dropConnection() {

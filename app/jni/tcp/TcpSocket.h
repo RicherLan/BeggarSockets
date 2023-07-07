@@ -24,10 +24,10 @@ private:
     // 字节流
     ByteStream *byteStream = nullptr;
 
-    // eventFd，可以通过该字段判断连接是否建立
+    // 当前的socket
     int sockedFd = -1;
     // epoll_event
-    struct epoll_event event;
+    struct epoll_event socketEvent;
     // 事件分发
     EventsDispatcher *eventsDispatcher = nullptr;
 

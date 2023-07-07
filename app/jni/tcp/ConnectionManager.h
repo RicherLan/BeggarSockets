@@ -43,6 +43,11 @@ private:
     // 调度一个task
     void scheduleTask(std::function<void()> task);
 
+    // socket连接的时候调用
+    void attachConnection(TcpSocket *connection);
+    // socket关闭的时候调用
+    void detachConnection(TcpSocket *connection);
+
     // todo 放在这里是不合理的
     // 负责整个tcp的epoll
     int epollFd;
