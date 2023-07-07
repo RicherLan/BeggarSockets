@@ -4,8 +4,8 @@
  * description: 整个tcp客户端的接口层: 握手、发消息、收消息等
  */
 
-#ifndef BEGGARSOCKETS_CONNECTITONMANAGER_H
-#define BEGGARSOCKETS_CONNECTITONMANAGER_H
+#ifndef BEGGARSOCKETS_CONNECTIONMANAGER_H
+#define BEGGARSOCKETS_CONNECTIONMANAGER_H
 
 #include "stdint.h"
 #include "string"
@@ -43,6 +43,14 @@ private:
     // 调度一个task
     void scheduleTask(std::function<void()> task);
 
+    // todo 放在这里是不合理的
+    // 负责整个tcp的epoll
+    int epollFd;
+
+
+    // todo 依赖关系反了
+    friend class TcpSocket;
+    friend class TcpConnection;
 };
 
-#endif //BEGGARSOCKETS_CONNECTITONMANAGER_H
+#endif //BEGGARSOCKETS_CONNECTIONMANAGER_H

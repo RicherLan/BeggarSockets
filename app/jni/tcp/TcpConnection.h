@@ -1,7 +1,7 @@
 /** 
  * author: BeggarLan
  * created on: 2023/7/6 15:19 
- * description: tcp客户端
+ * description: 封装连接相关的
  */
 
 #ifndef BEGGARSOCKETS_TCPCONNECTION_H

@@ -1,7 +1,7 @@
 /** 
  * author: BeggarLan
  * created on: 2023/7/6 11:14 
- * description: 封装tcpSocket
+ * description: tcpSocket
  */
 
 #ifndef BEGGARSOCKETS_TCPSOCKET_H
@@ -14,6 +14,7 @@
 class ByteStream;
 class NativeByteBuffer;
 class EventsDispatcher;
+class SocketCloseReason;
 
 class TcpSocket {
 private:
@@ -31,6 +32,7 @@ private:
     EventsDispatcher *eventsDispatcher = nullptr;
 
     time_t timeoutMs;
+    // 上次事件的时间
     int64_t  lastEventTimeMs;
 
 public:
@@ -58,7 +60,7 @@ protected:
     virtual void onDisconnected(int reason) {};
 
 private:
-    void closeSocket(int reason);
+    void closeSocket(SocketCloseReason reason);
     bool checkSocketError();
     // bufferStream有改变时调用
     void adjustWriteOp();
