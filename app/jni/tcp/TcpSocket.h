@@ -21,7 +21,7 @@ private:
     // address
     struct sockaddr_in socketAddress;
     struct sockaddr_in6 socketAddress6;
-    // 发送字节流
+    // write字节流
     ByteStream *byteStream = nullptr;
 
     // 当前的socket

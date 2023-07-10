@@ -166,7 +166,7 @@ void TcpSocket::dropConnection() {
 }
 
 bool TcpSocket::isConnected() {
-
+    return connected;
 }
 
 // 写数据
@@ -189,7 +189,7 @@ void TcpSocket::notifyWriteOp() {
 
 // 设置超时时间
 void TcpSocket::setTimeout(time_t timeMs) {
-
+    timeoutMs = timeMs;
 }
 
 void TcpSocket::onEvent(uint32_t events) {
