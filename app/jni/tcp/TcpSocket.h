@@ -21,7 +21,7 @@ private:
     // address
     struct sockaddr_in socketAddress;
     struct sockaddr_in6 socketAddress6;
-    // 字节流
+    // 发送字节流
     ByteStream *byteStream = nullptr;
 
     // 当前的socket
@@ -47,7 +47,7 @@ public:
     void dropConnection();
     bool isConnected();
     // 写数据
-    void writeBuffer();
+    void writeBuffer(NativeByteBuffer *buffer);
     // 设置超时时间
     void setTimeout(time_t timeMs)
 
@@ -65,11 +65,11 @@ protected:
 private:
     void closeSocket(SocketCloseReason reason);
     bool checkSocketError();
-    // bufferStream有改变时调用
-    void adjustWriteOp();
     // 连接
     void openConnectionIpv4(std::string address, uint16_t port);
     void openConnectionIpv6(std::string address, uint16_t port);
+    // 通知写操作
+    void notifyWriteOp();
 };
 
 #endif //BEGGARSOCKETS_TCPSOCKET_H

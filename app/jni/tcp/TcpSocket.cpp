@@ -170,8 +170,21 @@ bool TcpSocket::isConnected() {
 }
 
 // 写数据
-void TcpSocket::writeBuffer() {
+void TcpSocket::writeBuffer(NativeByteBuffer *buffer) {
+    byteStream->append(buffer);
+    notifyWriteOp();
+}
 
+
+// bufferStream有改变时调用
+void TcpSocket::notifyWriteOp() {
+    if (byteStream->hasData()) {
+        // 会重新触发EPOLLOUT
+        int code = epoll_ctl(epollFd, EPOLL_CTL_MOD, socketFd, &socketEvent);
+        if (code != 0) {
+            closeSocket(SocketCloseReason::COMMON)
+        }
+    }
 }
 
 // 设置超时时间
@@ -233,6 +246,22 @@ void TcpSocket::onEvent(uint32_t events) {
                 connected = true;
                 onConnected();
             }
+            NativeByteBuffer *buffer = ConnectionManager::getInstance().networkBuffer;
+            buffer->clear();
+            byteStream->get(buffer);
+            buffer->flip();
+            uint32_t remaining = buffer->remaining();
+            if (remaining > 0) {
+                ssize_t length = send(sockedFd, buffer->bytes(), remaining, 0);
+                // 写失败
+                if (length < 0) {
+                    closeSocket(SocketCloseReason::COMMON);
+                    return;
+                } else {
+                    byteStream->discard(length);
+                    notifyWriteOp();
+                }
+            }
         }
     }
 }
@@ -281,9 +310,4 @@ bool TcpSocket::checkSocketError() {
     int code;
     int opt = getsockopt(sockedFd, SOL_SOCKET, SO_ERROR, code, sizeof(int));
     return code != 0 || opt != 0;
-}
-
-// bufferStream有改变时调用
-void TcpSocket::adjustWriteOp() {
-
 }
