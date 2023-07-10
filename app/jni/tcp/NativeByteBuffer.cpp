@@ -7,6 +7,7 @@
 #include <stdint.h
 #include <string.h>
 #include "NativeByteBuffer.h"
+#include "BufferStorage.h"
 
 NativeByteBuffer::NativeByteBuffer(uint32_t size) {
     buffer = new uint8_t[size];
@@ -102,7 +103,7 @@ void NativeByteBuffer::clear() {
 }
 
 void NativeByteBuffer::reuse() {
-
+    BufferStorage::getInstance().reuseFreeBuffer(this);
 }
 
 

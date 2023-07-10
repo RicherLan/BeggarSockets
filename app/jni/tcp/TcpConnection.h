@@ -10,6 +10,7 @@
 #include "TcpSocket.h"
 #include "TcpConnectionStatus.h"
 #include "PacketHeader.h"
+#include "Timer.h"
 
 class DataCenter;
 
@@ -35,10 +36,14 @@ private:
     // server的地址
     std::string serverAddress;
     uint16_t serverPort;
+    // 暂存数据用：比如收到的数据不够一个完整的数据包，需要等到下次收到数据一起合成完整数据包
+    NativeByteBuffer *notFullData;
     // 获取数据用
     DataCenter& dataCenter;
     // 连接状态
     TcpConnectionStatus connectionStatus = TcpConnectionStatus::Idle;
+    // 重连计时器
+    Timer *reconnectTimer;
 
     // 检查header是否有问题
     bool checkHeader(PacketHeader& packetHeader);

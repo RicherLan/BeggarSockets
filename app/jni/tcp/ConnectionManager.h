@@ -10,6 +10,7 @@
 #include "stdint.h"
 #include "string"
 #include <sys/epoll.h>
+#include "TcpConnectionStatus.h"
 
 class EventsDispatcher;
 class TcpSocket;
@@ -47,6 +48,9 @@ private:
     void attachConnection(TcpSocket *connection);
     // socket关闭的时候调用
     void detachConnection(TcpSocket *connection);
+    // 连接状态改变
+    void onConnectStatusChanged(TcpConnectionStatus status);
+
 
     // todo 放在这里是不合理的
     // 负责整个tcp的epoll
