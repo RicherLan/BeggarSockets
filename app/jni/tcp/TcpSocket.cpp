@@ -62,7 +62,7 @@ void TcpSocket::openConnectionIpv4(std::string address, uint16_t port) {
     // 创建socket
     sockedFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockedFd < 0) {
-        closeSocket(SocketCloseReason::COMMON)
+        closeSocket(SocketCloseReason::COMMON);
         return;
     }
     socketAddress.sin_port = htons(port);
@@ -132,14 +132,14 @@ void TcpSocket::openConnectionIpv6(std::string address, uint16_t port) {
     int epollFd = ConnectionManager::getInstance().epollFd;
     sockedFd = socket(AF_INET6, SOCK_STREAM, 0);
     if (sockedFd < 0) {
-        closeSocket(SocketCloseReason::COMMON)
+        closeSocket(SocketCloseReason::COMMON);
         return;
     }
     socketAddress6.sin6_port = htons(port);
     socketAddress6.sin6_family = AF_INET6;
 
     int ok;
-    setsockopt(sockedFd, IPPROTO_TCP, TCP_NODELAY, &ok, sizeof(int))
+    setsockopt(sockedFd, IPPROTO_TCP, TCP_NODELAY, &ok, sizeof(int));
 
     if (fcntl(sockedFd, F_SETFL, O_NONBLOCK) == -1) {
         closeSocket(SocketCloseReason::COMMON);
@@ -156,7 +156,7 @@ void TcpSocket::openConnectionIpv6(std::string address, uint16_t port) {
         socketEvent.data.ptr = eventsDispatcher;
         int code = epoll_ctl(epollFd, EPOLL_CTL_ADD, socketFd, &socketEvent);
         if (code != 0) {
-            closeSocket(SocketCloseReason::COMMON)
+            closeSocket(SocketCloseReason::COMMON);
         }
     }
 }
@@ -182,7 +182,7 @@ void TcpSocket::notifyWriteOp() {
         // 会重新触发EPOLLOUT
         int code = epoll_ctl(epollFd, EPOLL_CTL_MOD, socketFd, &socketEvent);
         if (code != 0) {
-            closeSocket(SocketCloseReason::COMMON)
+            closeSocket(SocketCloseReason::COMMON);
         }
     }
 }

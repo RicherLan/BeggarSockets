@@ -12,14 +12,14 @@
 
 
 TcpConnection::TcpConnection(const DataCenter &dataCenter) {
-    this.dataCenter = dataCenter;
+    this->dataCenter = dataCenter;
     connectionStatus = TcpConnectionStatus::Idle;
     // [&] 匿名函数，可以引用外部变量
     reconnectTimer = new Timer([&] {
         reconnectTimer->stop();
         // 超时重连
         connect();
-    })
+    });
 }
 
 TcpConnection::~TcpConnection() {
@@ -43,7 +43,7 @@ void TcpConnection::connect() {
     // 停止重连
     reconnectTimer->stop();
     // 清除上一个连接的数据
-    if(notFullData!= nullptr) {
+    if (notFullData != nullptr) {
         notFullData->reuse();
         notFullData = nullptr;
     }
@@ -55,18 +55,31 @@ void TcpConnection::connect() {
     serverPort = dataCenter.getCurrentPort();
     openConnection(serverAddress, serverPort);
 
-    // todo 设置超时
+    // 设置超时时间
+    setTimeout(10000);
 }
 
 void TcpConnection::reconnect() {
-
+    closeConnect();
+    connectionStatus = TcpConnectionStatus::Reconnecting;
+    connect();
 }
 
 void TcpConnection::closeConnect() {
-
+    // 停止重连
+    reconnectTimer->stop();
+    if (connectionStatus == TcpConnectionStatus::Idle ||
+        connectionStatus == TcpConnectionStatus::closed) {
+        return;
+    }
+    connectionStatus = TcpConnectionStatus::closed;
+    dropConnection();
 }
 
 void TcpConnection::sendData(NativeByteBuffer *buffer) {
+    if (connectionStatus != TcpConnectionStatus::Connected) {
+        return;
+    }
 
 }
 
@@ -80,4 +93,8 @@ void TcpConnection::onConnected() {
 
 void TcpConnection::onDisconnected(int reason) {
 
+}
+
+bool TcpConnection::isConnected() {
+    return connectionStatus == TcpConnectionStatus::Connected;
 }

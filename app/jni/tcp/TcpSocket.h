@@ -10,11 +10,11 @@
 #include <sys/epoll.h>
 #include "string"
 #include <netinet/in.h>
+#include "SocketCloseReason.h"
 
 class ByteStream;
 class NativeByteBuffer;
 class EventsDispatcher;
-class SocketCloseReason;
 
 class TcpSocket {
 private:
@@ -49,7 +49,7 @@ public:
     // 写数据
     void writeBuffer(NativeByteBuffer *buffer);
     // 设置超时时间
-    void setTimeout(time_t timeMs)
+    void setTimeout(time_t timeMs);
 
     // todo
 protected:
